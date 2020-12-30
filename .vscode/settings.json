@@ -1,0 +1,4 @@
+{
+  "python.pythonPath": "~/miniconda3/envs/CarND-Term1/bin/python",
+  "python.linting.pylintArgs": ["--generate-members"]
+}
