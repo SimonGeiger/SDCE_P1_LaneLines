@@ -150,16 +150,16 @@ def extrapolate_lanes(hough_lines):
             continue
 
         elif m > 0.5:
-            # left line => / (between 45° and 90°)
+            # left line => / 
             m_left.append(m)
             b_left.append(b)
         elif m < -0.5:
-            # right line => \ (between 45° and -90°)
+            # right line => \ 
             m_right.append(m)
             b_right.append(b)
 
         else:
-            # -0.25 < m < 0.25 => line to the left or to the right => not useful
+            # -0.5 < m < 0.5 => line to the left or to the right => not useful
             continue
 
         ms.append(m)
@@ -176,6 +176,7 @@ def extrapolate_lanes(hough_lines):
         right_lane = [calculate_lane_cartesian(m_right_median,b_right_median,y_start),y_start, # x_start, y_start, 
                       calculate_lane_cartesian(m_right_median,b_right_median,y_end),y_end] # x_end, y_end
 
+    # plot to display mean/median value within extracted lines
     # plt.subplot(2,1,1)
     # plt.hist(ms)
     # plt.axvline(m_right_mean, color='k', linestyle='dashed', linewidth=1)
@@ -193,65 +194,6 @@ def extrapolate_lanes(hough_lines):
     # min_ylim, max_ylim = plt.ylim()
     # plt.text(b_left_mean*1.1, max_ylim*0.9, 'Mean: {:.2f}'.format(b_left_mean))
     # plt.show()
-
-    lanes = [[left_lane], [right_lane]]
-
-    return lanes
-
-def extrapolate_lanes2(hough_lines):
-    """
-    This function takes the hough_lines and translates it into left and right lane
-    input: hough lines (output of cv2.HoughLines)
-    output: left_lane and right_lane, each with start and end point
-    """
-    counter_left = 0
-    sum_theta_left = 0
-    sum_rho_left = 0
-    counter_right = 0
-    sum_theta_right = 0
-    sum_rho_right = 0
-    y_start = 540
-    y_end = 300
-    left_lane = [-1,-1,-1,-1]
-    right_lane = [-1,-1,-1,-1]
-
-    # analyze hough_lines to dermine left vs. right line
-    for line in hough_lines:
-        x1, y1, x2, y2 = line[0]
-        line_theta = np.arctan2(y2-y1,x2-x1)
-        line_rho = x1 * np.cos(line_theta) + y1 * np.sin(line_theta)
-
-        cond_left_a = np.pi*3/4 < abs(line_theta)
-        cond_left_b = abs(line_theta) < np.pi
-        cond_right_a = 0 < abs(line_theta) 
-        cond_right_b = abs(line_theta) < np.pi/4       
-
-        if np.pi*3/4 < abs(line_theta) and abs(line_theta) < np.pi:
-            # left line => / (between 135° and 180°)
-            counter_left += 1
-            sum_theta_left += line_theta
-            sum_rho_left += line_rho
-
-        elif 0 < abs(line_theta) and abs(line_theta) < np.pi/4:
-            # right line => \ (between 0° and 45°)
-            counter_right += 1
-            sum_theta_right += line_theta
-            sum_rho_right += line_rho
-            print(f"{counter_right} | theta: {line_theta}, rho: {line_rho}")
-
-        else:
-            # more vertical or) more horizontal line => can't be used
-            continue
-
-    if counter_left > 0:
-        left_lane_polar = [sum_theta_left/counter_left, sum_rho_left/counter_left]
-        left_lane = [calculate_lane_polar(left_lane_polar[0],left_lane_polar[1],y_start),y_start, calculate_lane_polar(left_lane_polar[0],left_lane_polar[1],y_end),y_end] # x_start, y_start, x_end, y_end
-    
-    if counter_right > 0:
-        right_lane_polar = [sum_theta_right/counter_right, sum_rho_right/counter_right]
-        right_lane = [calculate_lane_polar(right_lane_polar[0],right_lane_polar[1],y_start),y_start, calculate_lane_polar(right_lane_polar[0],right_lane_polar[1],y_end),y_end] # x_start, y_start, x_end, y_end
-        print(f"right_lane: {right_lane_polar}, counter: {counter_right}")
-        print(f"start ({right_lane[0]}|{right_lane[1]}), end ({right_lane[2]}|{right_lane[3]})")
 
     lanes = [[left_lane], [right_lane]]
 
