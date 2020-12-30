@@ -70,7 +70,7 @@ for i in range(len(test_images)):
   plt.subplot(3,4,2*i+1)
   plt.imshow(image, cmap='gray')
   plt.subplot(3,4,2*i+2)
-  plt.imshow(image_lanes)
+  plt.imshow(image_hough)
   
 
 plt.show()

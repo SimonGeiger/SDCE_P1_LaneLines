@@ -97,14 +97,7 @@ def weighted_img(img, initial_img, α=0.8, β=1., γ=0.):
     NOTE: initial_img and img must be the same shape!
     """
     return cv2.addWeighted(initial_img, α, img, β, γ)
-
-
-def calculate_lane_polar(theta, rho, y):
-    """
-    This function outputs the x coordinate on a straight line (defined by theta and rho)
-    """
-    return int((rho-y*np.sin(theta)) / np.cos(theta))
-
+    
 
 def calculate_lane_cartesian(m, b, y):
     """
