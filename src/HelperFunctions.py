@@ -97,7 +97,7 @@ def weighted_img(img, initial_img, α=0.8, β=1., γ=0.):
     NOTE: initial_img and img must be the same shape!
     """
     return cv2.addWeighted(initial_img, α, img, β, γ)
-    
+
 
 def calculate_lane_cartesian(m, b, y):
     """
@@ -106,24 +106,32 @@ def calculate_lane_cartesian(m, b, y):
     return int((y-b) / m)
 
 
-def extrapolate_lanes(hough_lines):
+def extrapolate_lanes(hough_lines, img):
     """
-    This function takes the hough_lines and translates it into left and right lane
+    This function takes the hough_lines and translates it into left and right lane by 
+    1) calculating the slope m and y-intercept b for each hough line. 
+    2) sorting into left lane and right lane by distiguishing positive and negative slopes
+    3) determining median slope/y inercept for each left and right lane
+    4) drawing red lines into empty image
+    5) returning that image
     input: hough lines (output of cv2.HoughLines)
-    output: left_lane and right_lane, each with start and end point
+    output: image with detected lanes only (mask)
     """
     y_start = 540
     y_end = 340
 
     left_lane = [-1,-1,-1,-1]
     right_lane = [-1,-1,-1,-1]
-    
-    ms = list()
-    bs = list()
+
     m_left = list()
     b_left = list()
     m_right = list()
     b_right = list()
+
+    m_left_mean = 0.0
+    m_right_mean = 0.0
+    b_left_mean = 0.0
+    b_right_mean = 0.0
 
     # analyze hough_lines to dermine left vs. right line
     for line in hough_lines:
@@ -142,11 +150,15 @@ def extrapolate_lanes(hough_lines):
             # vertical or horizontal lane => can't be used
             continue
 
-        elif m > 0.5:
+
+        m_wanted_left = 0.55
+        m_wanted_right = -0.68
+        m_tolerance = 0.25
+        if m > (m_wanted_left - m_tolerance) and  m < (m_wanted_left + m_tolerance):
             # left line => / 
             m_left.append(m)
             b_left.append(b)
-        elif m < -0.5:
+        elif m > (m_wanted_right - m_tolerance) and m < (m_wanted_right + m_tolerance):
             # right line => \ 
             m_right.append(m)
             b_right.append(b)
@@ -155,39 +167,43 @@ def extrapolate_lanes(hough_lines):
             # -0.5 < m < 0.5 => line to the left or to the right => not useful
             continue
 
-        ms.append(m)
-        bs.append(b)
-
     if len(m_left)>0:
-        m_left_median = median(m_left)
-        b_left_median = median(b_left)
-        left_lane = [calculate_lane_cartesian(m_left_median,b_left_median,y_start),y_start, # x_start, y_start, 
-                     calculate_lane_cartesian(m_left_median,b_left_median,y_end),y_end] # x_end, y_end
+        m_left_mean = mean(m_left) 
+        b_left_mean = mean(b_left)
+        left_lane = [calculate_lane_cartesian(m_left_mean,b_left_mean,y_start),y_start, # x_start, y_start, 
+                     calculate_lane_cartesian(m_left_mean,b_left_mean,y_end),y_end] # x_end, y_end
     if len(m_right)>0:
-        m_right_median = median(m_right)
-        b_right_median = median(b_right)
-        right_lane = [calculate_lane_cartesian(m_right_median,b_right_median,y_start),y_start, # x_start, y_start, 
-                      calculate_lane_cartesian(m_right_median,b_right_median,y_end),y_end] # x_end, y_end
+        m_right_mean = mean(m_right)
+        b_right_mean = mean(b_right)
+        right_lane = [calculate_lane_cartesian(m_right_mean,b_right_mean,y_start),y_start, # x_start, y_start, 
+                      calculate_lane_cartesian(m_right_mean,b_right_mean,y_end),y_end] # x_end, y_end
 
     # plot to display mean/median value within extracted lines
     # plt.subplot(2,1,1)
-    # plt.hist(ms)
+    # plt.hist(m_left)
+    # plt.hist(m_right)
+    # plt.axvline(m_left_mean, color='k', linestyle='dashed', linewidth=1)
     # plt.axvline(m_right_mean, color='k', linestyle='dashed', linewidth=1)
     # min_ylim, max_ylim = plt.ylim()
-    # plt.text(m_right_mean*1.1, max_ylim*0.9, 'Mean: {:.2f}'.format(m_right_mean))
-    # plt.axvline(m_left_mean, color='k', linestyle='dashed', linewidth=1)
-    # min_ylim, max_ylim = plt.ylim()
-    # plt.text(m_left_mean*1.1, max_ylim*0.9, 'Mean: {:.2f}'.format(m_left_mean))
+    # plt.text(m_left_mean + 0.02, max_ylim*0.9, f"mean: {m_left_mean:.2f}")
+    # plt.text(m_left_mean + 0.02, max_ylim*0.8, f"num: {len(m_left)}")
+    # plt.text(m_right_mean + 0.02, max_ylim*0.9, f"mean: {m_right_mean:.2f}")
+    # plt.text(m_right_mean + 0.02, max_ylim*0.8, f"num: {len(m_right)}")
     # plt.subplot(2,1,2)
-    # plt.hist(bs)
+    # plt.hist(b_left)
+    # plt.hist(b_right)
+    # plt.axvline(b_left_mean, color='k', linestyle='dashed', linewidth=1)
     # plt.axvline(b_right_mean, color='k', linestyle='dashed', linewidth=1)
     # min_ylim, max_ylim = plt.ylim()
-    # plt.text(b_right_mean*1.1, max_ylim*0.9, 'Mean: {:.2f}'.format(b_right_mean))
-    # plt.axvline(b_left_mean, color='k', linestyle='dashed', linewidth=1)
-    # min_ylim, max_ylim = plt.ylim()
-    # plt.text(b_left_mean*1.1, max_ylim*0.9, 'Mean: {:.2f}'.format(b_left_mean))
+    # plt.text(b_left_mean + 2, max_ylim*0.9, f"mean: {b_left_mean:.2f}")
+    # plt.text(b_left_mean + 2, max_ylim*0.8, f"num: {len(b_left)}")
+    # plt.text(b_right_mean + 2, max_ylim*0.9, f"mean: {b_right_mean:.2f}")
+    # plt.text(b_right_mean + 2, max_ylim*0.8, f"num: {len(b_right)}")
     # plt.show()
 
     lanes = [[left_lane], [right_lane]]
 
-    return lanes
+    lanes_img = np.zeros((img.shape[0], img.shape[1], 3), dtype=np.uint8)
+    draw_lines(lanes_img,lanes, thickness=10)
+
+    return lanes_img

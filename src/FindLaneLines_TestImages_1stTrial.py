@@ -44,16 +44,13 @@ for i in range(len(test_images)):
   min_line_len = 8
   max_line_gap = 5
 
-  [hough_roi, hough_lines] = hf.hough_lines(output_canny_roi, rho, theta, threshold, min_line_len, max_line_gap)
+  [hough_roi, hough_lines_output] = hf.hough_lines(output_canny_roi, rho, theta, threshold, min_line_len, max_line_gap)
 
   # find left and right lane
-  lanes = hf.extrapolate_lanes(hough_lines)
-  image_lanes = np.copy(image)
-  hf.draw_lines(image_lanes,lanes, thickness=10)
-  # plt.imshow(image_lanes)
+  lanes_img = hf.extrapolate_lanes(hough_lines_output,image)
 
-  # draw hough lines back to original image
-  image_hough = hf.weighted_img(hough_roi, image, α=0.8, β=1., γ=0.)
+  # draw found lanes back to original image
+  image_lanes_detected = hf.weighted_img(lanes_img, image, α=0.8, β=1., γ=0.)
 
   # plot all steps for one test image
   # plt.subplot(2,2,1)
@@ -64,15 +61,13 @@ for i in range(len(test_images)):
   # plt.imshow(image_hough, cmap='gray')
   # plt.subplot(2,2,4)
   # plt.imshow(image_lanes)
-
   
   # plot output on all test images (canny + hough_roi)
   plt.subplot(3,4,2*i+1)
-  plt.imshow(image, cmap='gray')
+  plt.imshow(hough_roi)
   plt.subplot(3,4,2*i+2)
-  plt.imshow(image_hough)
+  plt.imshow(image_lanes_detected)
   
-
 plt.show()
 
 
