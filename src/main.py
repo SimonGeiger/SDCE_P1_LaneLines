@@ -1,8 +1,9 @@
 import os
 import FindLaneLine
+import matplotlib.pyplot as plt
 
 def main():
-  print("Self Driving Car Engineer: Project 1) Finding Lane Lines")
+  # print("Self Driving Car Engineer: Project 1) Finding Lane Lines")
 
   test_images = os.listdir("test_images/")
 
@@ -14,14 +15,15 @@ def main():
   test_images = ["test_images/" + item for item in test_images if ".jpg" in item] # list comprehension, with conditionalj
 
   # TODO: Read from Video
-  path_to_image = test_images[4]
+  path_to_image = test_images[0]
 
   fll = FindLaneLine.MyImage(path_to_image)
   fll.create_color_mask()
   fll.find_edges()
 
-  fll.print(0.5)
+  fll.print(2)
 
 
 if __name__ == "__main__":
     main()
+
