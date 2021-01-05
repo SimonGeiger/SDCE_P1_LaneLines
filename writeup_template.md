@@ -3,7 +3,32 @@
 ## Writeup Template
 
 ### You can use this file as a template for your writeup if you want to submit it as a markdown file. But feel free to use some other method and submit a pdf if you prefer.
+---
+**Given Advice & Goals**
+* The tools you have are color selection, region of interest selection, grayscaling, Gaussian smoothing, Canny Edge Detection and Hough Tranform line detection. 
+* Your goal is piece together a pipeline to ...
+  * detect the line segments in the image
+  * then average/extrapolate them and draw them onto the image for display
+  * Once you have a working pipeline, try it out on the video stream below.
+---
+**Imagined Pipeline**
 
+1) get image from video stream
+2) find lanes
+    * image preprocessing
+      * color space
+      * noise filtering
+      * ROI masking
+    * feature extraction
+      * color selection
+      * canny edge detection
+      * hough transformation
+    * lane finding algorithm
+      * previous image
+      * slope of detected edge
+      
+
+3) return image with lanes marked and stich back together to stream
 ---
 
 **Finding Lane Lines on the Road**
@@ -23,9 +48,6 @@ The steps of this project are the following:
 
 ### 1. Describe your pipeline. As part of the description, explain how you modified the draw_lines() function.
 
-* image segmentation
-  * color selection
-  * region masking
 * feature extraction
   * canny edge detection
   * hough transformation
@@ -47,6 +69,4 @@ Another shortcoming could be ...
 
 ### 3. Suggest possible improvements to your pipeline
 
-A possible improvement would be to ...
-
-Another potential improvement could be to ...
+* hard-coded ROI
