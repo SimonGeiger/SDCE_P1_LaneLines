@@ -67,19 +67,19 @@ class MyImage:
   def print(self, mode):
     if mode == 0: # show raw color image with shape info
       print(f"The shape of the image is {self.shape}.")
-      plt.title("raw color image")
+      plt.title("RGB image")
       plt.imshow(self.image_raw)
 
     if mode == 0.5: # compare HSV and HSL
       plt.subplot(1,3,1)
-      plt.title("raw color image")
+      plt.title("RGB color space")
       plt.imshow(self.image_raw)
       plt.subplot(1,3,2)
-      plt.title("hsv image")
-      plt.imshow(self.image_hsv)
+      plt.title("HSV color space")
+      plt.imshow(cv2.cvtColor(self.image_raw, cv2.COLOR_RGB2HSV))
       plt.subplot(1,3,3)
-      plt.title("hls image")
-      plt.imshow(self.image_hls)
+      plt.title("HLS color space")
+      plt.imshow(cv2.cvtColor(self.image_raw, cv2.COLOR_RGB2HLS))
       
     elif mode == 1: # show raw image, color mask + masked result
       plt.subplot(2,2,1)
@@ -109,4 +109,7 @@ class MyImage:
       plt.subplot(2,2,4)
       plt.title("hough transformation")
       # plt.imshow(self.hough, cmap='gray')
+
     plt.show()
+    manager = plt.get_current_fig_manager()
+    manager.window.showMaximized()

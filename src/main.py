@@ -14,7 +14,7 @@ def main():
   test_images = ["test_images/" + item for item in test_images if ".jpg" in item] # list comprehension, with conditionalj
 
   # TODO: Read from Video
-  path_to_image = test_images[1]
+  path_to_image = test_images[4]
 
   fll = FindLaneLine.MyImage(path_to_image)
   fll.create_color_mask()
