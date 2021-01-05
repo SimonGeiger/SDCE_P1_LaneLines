@@ -19,7 +19,7 @@ def main():
 
   fll = FindLaneLine.MyImage(path_to_image)
   fll.create_color_mask()
-  fll.find_edges()
+  fll.find_edges_in_roi()
 
   fll.print(2)
 
