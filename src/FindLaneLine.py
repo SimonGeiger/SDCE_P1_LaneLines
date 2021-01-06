@@ -5,9 +5,14 @@ import matplotlib.image as mpimg
 
 class Line():
   """
-  docstring
+  This Line class stores the parameters (start and end points, slope m and y-interception b) of every line.
+  Additionally it evaluates (depending on slope value) if the line is potentially part of the left or right lane
   """
   def __init__(self, *args):
+    '''
+    This constructor initializes the line object. Two cases are accepted as input [start + end point] or [slope + y-interception + classication].
+    '''
+    ### constructor for start and end point input
     if len(args) == 4:
       self.start_x = args[0]
       self.start_y = args[1]
@@ -23,6 +28,7 @@ class Line():
 
       # self.length = np.sqrt( (self.end_x - self.start_x)**2 + (self.end_y - self.start_y)**2)
 
+      ### orientation classification depending on value of slope m
       m_wanted_left = 0.55
       m_wanted_right = -0.68
       m_tolerance = 0.25
@@ -35,25 +41,57 @@ class Line():
       else:
           # line to the left or to the right => not useful
           self.type = 'horizontal'
+
+    ### constructor for slope, y-interception and classifiation as input
     elif len(args) == 3:
       self.m = args[0]
       self.b = args[1]
-      self.start_y = 540
+      self.start_y = 540 # lower edge of image
       self.start_x = int((self.start_y - self.b) / self.m)
-      self.end_y = 330
+      self.end_y = 330 # draw line up to this height
       self.end_x = int((self.end_y - self.b) / self.m)
       self.type = args[2]
 
+    ### error, because wrong number of inputs
     else:
       raise NotImplementedError(f"Constructor for {len(args)} has not been defined")
 
   def draw_line(self, img, color = [255, 0, 0], thickness = 2):
+    '''
+    This function draws a line into a given image. Color and thickness can be parametrizied.
+    '''
     cv2.line(img, (self.start_x, self.start_y), (self.end_x, self.end_y), color, thickness)  
 
 
 class Image:
   """
-  docstring
+  This class has all the functions implemented to process an image to detect the lanes.
+  Call the process_image() function to find lane lines in the image.
+    Steps:
+    - filter for yellow and white colors as those represent the lanes
+    - crop search area to the region of interest (ROI)
+    - find edges with canny
+    - find related edges with hough transformation
+    - calculate slope and y-intercept for every hough line
+    - classify line into left lane, right lane, horizontal via line slope
+    - calculate mean slope/y-intercept from entire left lane lines and right lane lines
+    - return left and right lane
+  There's also a print function implemented to display certain outputs of the lane detection algorithm
+
+  ToDo/Improvements:
+    - split more consequently algorithm and visualization
+      > drawing of lines into printing
+    - catch potential edge cases like
+      > bad input: no image, wrong shape, ...
+      > no visible lane markings
+      > ...
+    - improve algorithm speed
+      > a lot of code artifacts only used for developing purposes
+    - outsource parameters into header
+    - improve to detect curves
+    - hard coded parameters + ROI isn't flexible
+    - detection of adjacent lane
+    - detection of road boundaries => better ROI?
   """
 
   def __init__(self, path_to_image):
@@ -73,6 +111,18 @@ class Image:
       # how/when to use assert, raise, try/except => https://stackoverflow.com/questions/40182944/difference-between-raise-try-and-assert
       raise ValueError(f"Path to Image is missing.")
 
+  def process_image(self, print_mode = 0):
+    """
+    This function processes a single image and returns the position of potential lane lines.
+    """
+    self.create_color_mask()
+    self.find_hough_lines_in_roi()
+    self.get_lanes()
+
+    if print_mode > 0:
+      self.print(print_mode)
+
+    return [self.lane_left, self.lane_right]
 
   def create_color_mask(self):
     ### convert to HSV color space => https://en.wikipedia.org/wiki/HSL_and_HSV#Basic_principle
@@ -128,9 +178,9 @@ class Image:
       self.lines.append(Line(element[0][0],element[0][1],element[0][2],element[0][3]))
       self.lines[i].draw_line(self.hough_image, thickness = 1)
       self.lines[i].draw_line(self.canny_hough_image, thickness = 1)
-    # self.hough_image = cv2.addWeighted(src1 = self.image_raw, alpha = 0.8, src2 = self.hough_image, beta = 1.0, gamma = 0.0)
 
   def get_lanes(self):
+    ### get average lane parameters (slope/intersection) for left and right
     list_left = list()
     list_right = list()
     for element in self.lines:
@@ -138,28 +188,23 @@ class Image:
         list_left.append([element.m, element.b])
       elif element.type == 'right':
         list_right.append([element.m, element.b])
+    self.lane_left  = Line(np.mean([item[0] for item in list_left]),  np.mean([item[1] for item in list_left]),  'left')
+    self.lane_right = Line(np.mean([item[0] for item in list_right]), np.mean([item[1] for item in list_right]), 'right')
 
-    self.lane_left = [np.mean([item[0] for item in list_left]),np.mean([item[1] for item in list_left])]
-    self.lane_right = [np.mean([item[0] for item in list_right]),np.mean([item[1] for item in list_right])]
-
-    left = Line(*self.lane_left, 'left')
-    right = Line(*self.lane_right, 'right')
+    ### blend lane into original image
     self.lane_image = np.zeros_like(self.color_mask) 
     self.lane_image = np.repeat(self.lane_image[:, :, np.newaxis], 3, axis=2)
-    left.draw_line(self.lane_image, thickness = 8)
-    right.draw_line(self.lane_image, thickness = 8)   
+    self.lane_left.draw_line(self.lane_image, thickness = 8)
+    self.lane_right.draw_line(self.lane_image, thickness = 8)   
     self.lane_image = cv2.addWeighted(src1 = self.image_raw, alpha = 0.8, src2 = self.lane_image, beta = 1.0, gamma = 0.0)
 
-    return [self.lane_left, self.lane_right]
-
-
   def print(self, mode):
-    if mode == 0: # show raw color image with shape info
+    if mode == 1: # show raw color image with shape info
       print(f"The shape of the image is {self.shape}.")
       plt.title("RGB image")
       plt.imshow(self.image_raw)
 
-    elif mode == 0.5: # compare HSV and HSL
+    elif mode == 1.5: # compare HSV and HSL
       plt.subplot(1,3,1)
       plt.title("RGB color space")
       plt.imshow(self.image_raw)
@@ -170,7 +215,7 @@ class Image:
       plt.title("HLS color space")
       plt.imshow(cv2.cvtColor(self.image_raw, cv2.COLOR_RGB2HLS))
       
-    elif mode == 1: # show raw image, color mask + masked result
+    elif mode == 2: # show raw image, color mask + masked result
       plt.subplot(2,2,1)
       plt.title("rgb image")
       plt.imshow(self.image_raw)
@@ -185,7 +230,7 @@ class Image:
       plt.title("white color mask")
       plt.imshow(self.mask_white_color, cmap='gray')
 
-    elif mode == 2: # show result of edge detection and hough transformation
+    elif mode == 3: # show result of edge detection and hough transformation
       plt.subplot(2,2,1)
       plt.title("color mask")
       plt.imshow(self.color_mask, cmap='gray')
@@ -199,7 +244,7 @@ class Image:
       plt.title("canny edge detection")
       plt.imshow(self.canny, cmap='gray')
 
-    elif mode == 3:
+    elif mode == 4:
       plt.subplot(2,2,1)
       plt.title("RGB image")
       plt.imshow(self.image_raw)

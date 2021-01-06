@@ -16,16 +16,12 @@ def main():
   
   # test_images = test_images[0:1]
 
-  fll = list()
+  tst_imgs = list()
 
   # TODO: Read from Video
   for i, path in enumerate(test_images):
-    fll.append(FindLaneLine.Image(path))
-    fll[i].create_color_mask()
-    fll[i].find_hough_lines_in_roi()
-    fll[i].get_lanes()
-    fll[i].print(3)
-
+    tst_imgs.append(FindLaneLine.Image(path))
+    tst_imgs[i].process_image()
 
 if __name__ == "__main__":
     main()
