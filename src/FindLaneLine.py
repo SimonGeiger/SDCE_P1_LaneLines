@@ -10,7 +10,8 @@ class Line():
   """
   def __init__(self, *args):
     '''
-    This constructor initializes the line object. Two cases are accepted as input [start + end point] or [slope + y-interception + classication].
+    This constructor initializes the line object. Two cases are accepted as input [start + end point + image_shape]
+    or [slope + y-interception + classication + image_shape]. Lines are drawn depending on image size.
     '''
     ### constructor for start and end point input
     if len(args) == 5:
@@ -77,31 +78,29 @@ class Image:
     - calculate slope and y-intercept for every hough line
     - classify line into left lane, right lane, horizontal via line slope
     - calculate mean slope/y-intercept from entire left lane lines and right lane lines
-    - return left and right lane
+    - return image with lanes marked
   There's also a print function implemented to display certain outputs of the lane detection algorithm
 
   ToDo/Improvements:
-    - split more consequently algorithm and visualization
-      > drawing of lines into printing
+    - split algorithm and visualization
     - catch potential edge cases like
-      > bad input: no image, wrong shape, ...
+      > bad input: no image
       > no visible lane markings
       > ...
     - improve algorithm speed
       > a lot of code artifacts only used for developing purposes
     - outsource parameters into header
+    - stabilize output by using information/lane position from previous frames
     - improve to detect curves
-    - hard coded parameters + ROI isn't flexible
+    - hard coded parameters + ROI isn't flexible (for example driving up or downhill)
     - detection of adjacent lane
     - detection of road boundaries => better ROI?
   """
 
-  def __init__(self):
-    pass
-
   def process_image(self, img, print_mode=0):
     """
-    This function processes a single image and returns the position of potential lane lines.
+    This function processes a single image and returns an image with detected lane lines highlighted.
+    print_mode is an opptional value, with it steps of the algorithm can be visualized.
     """
     self.readImage(img)
     self.create_color_mask()
@@ -111,7 +110,6 @@ class Image:
     if print_mode > 0:
       self.print(print_mode)
 
-    # return [self.lane_left, self.lane_right]
     return cv2.cvtColor(self.lane_image,cv2.COLOR_RGB2BGR)
 
   def readImage(self,img):
@@ -155,9 +153,8 @@ class Image:
     if(self.color_mask.all() == None):
       raise ValueError(f"Mask is missing. Please run 'create_color_mask' first.")
 
-    ### mask with region of interest
-    vertices = np.int32(np.rint(self.shape[1]/960 * np.array([[[80,540], [920,540], [515,320], [445,320]]], dtype=np.int32)))  # 1280 x 720 px => 960 x 540 * 4/3
-
+    ### mask with region of interest, ROI is being extrapolated depending on image size, but optimized on 960x540 size
+    vertices = np.int32(np.rint(self.shape[1]/960 * np.array([[[80,540], [920,540], [515,320], [445,320]]], dtype=np.int32))) 
     self.roi_mask = np.zeros_like(self.color_mask)
     cv2.fillPoly(self.roi_mask, vertices, 255)
     self.color_mask_roi = cv2.bitwise_and(self.color_mask, self.roi_mask)    
@@ -190,7 +187,6 @@ class Image:
     
     self.lane_image = np.zeros_like(self.color_mask) 
     self.lane_image = np.repeat(self.lane_image[:, :, np.newaxis], 3, axis=2)
-    self.color_mask_roi_image = np.repeat(self.color_mask_roi[:, :, np.newaxis], 3, axis=2)  
 
     if len(list_left) > 0:
       self.lane_left  = Line(np.mean([item[0] for item in list_left]),  np.mean([item[1] for item in list_left]), 'left', self.shape)
@@ -200,7 +196,6 @@ class Image:
       self.lane_right.draw_line(self.lane_image, thickness = 8)   
 
     ### blend lane into original image
-    self.color_mask_roi_image = cv2.addWeighted(src1 = self.color_mask_roi_image, alpha = 1.0, src2 = self.lane_image, beta = 1.0, gamma = 0.0)
     self.lane_image = cv2.addWeighted(src1 = self.image_raw, alpha = 0.8, src2 = self.lane_image, beta = 1.0, gamma = 0.0)
     # self.lane_image = cv2.addWeighted(src1 = self.hough_image, alpha = 0.8, src2 = self.lane_image, beta = 1.0, gamma = 0.0)
 

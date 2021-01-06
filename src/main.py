@@ -1,9 +1,6 @@
 import os
 import cv2
 import FindLaneLine
-import matplotlib.pyplot as plt
-
-# Import everything needed to edit/save/watch video clips
 from moviepy.editor import VideoFileClip
 from IPython.display import HTML
 
@@ -15,8 +12,8 @@ def main():
   test_videos_output = list()
 
   for file_name in test_videos:
-    test_videos_input.append("test_videos/" + file_name)
-    test_videos_output.append("test_videos_output/" + file_name)
+    test_videos_input.append(f"test_videos/{file_name}")
+    test_videos_output.append(f"test_videos_output/{file_name}")
 
   # j = 0
   # clip = VideoFileClip(test_videos_input[j]).subclip(0,2)
