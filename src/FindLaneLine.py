@@ -13,11 +13,12 @@ class Line():
     This constructor initializes the line object. Two cases are accepted as input [start + end point] or [slope + y-interception + classication].
     '''
     ### constructor for start and end point input
-    if len(args) == 4:
+    if len(args) == 5:
       self.start_x = args[0]
       self.start_y = args[1]
       self.end_x = args[2]
       self.end_y = args[3]
+      self.image_shape = args[4]
 
       if self.end_x != self.start_x:
         self.m = (self.end_y - self.start_y) / (self.end_x - self.start_x)
@@ -43,20 +44,21 @@ class Line():
           self.type = 'horizontal'
 
     ### constructor for slope, y-interception and classifiation as input
-    elif len(args) == 3:
+    elif len(args) == 4:
       self.m = args[0]
       self.b = args[1]
-      self.start_y = 540 # lower edge of image
-      self.start_x = int((self.start_y - self.b) / self.m)
-      self.end_y = 330 # draw line up to this height
-      self.end_x = int((self.end_y - self.b) / self.m)
       self.type = args[2]
+      self.image_shape = args[3]
+      self.start_y = np.int32(np.rint(self.image_shape[1]/960 * 540)) # lower edge of image
+      self.start_x = np.int32(np.rint((self.start_y - self.b) / self.m))
+      self.end_y = np.int32(np.rint(self.image_shape[1]/960 * 330)) # draw line up to this height
+      self.end_x = np.int32(np.rint((self.end_y - self.b) / self.m))
 
     ### error, because wrong number of inputs
     else:
       raise NotImplementedError(f"Constructor for {len(args)} has not been defined")
 
-  def draw_line(self, img, color = [255, 0, 0], thickness = 2):
+  def draw_line(self, img, color = [255, 0, 255], thickness = 2):
     '''
     This function draws a line into a given image. Color and thickness can be parametrizied.
     '''
@@ -94,27 +96,14 @@ class Image:
     - detection of road boundaries => better ROI?
   """
 
-  def __init__(self, path_to_image):
-    # set font size of plot figure to 10 pt
-    plt.rcParams.update({'font.size': 10})
+  def __init__(self):
+    pass
 
-    # plot figure in max window size
-    manager = plt.get_current_fig_manager()
-    manager.window.showMaximized()
-
-    # read image and convert to RGB colors
-    if path_to_image != None:
-      self.image_raw = cv2.cvtColor(cv2.imread(path_to_image,cv2.IMREAD_COLOR),cv2.COLOR_BGR2RGB)
-      self.shape = self.image_raw.shape
-    else:
-      # introduction to python exceptions => https://realpython.com/python-exceptions/
-      # how/when to use assert, raise, try/except => https://stackoverflow.com/questions/40182944/difference-between-raise-try-and-assert
-      raise ValueError(f"Path to Image is missing.")
-
-  def process_image(self, print_mode = 0):
+  def process_image(self, img, print_mode=0):
     """
     This function processes a single image and returns the position of potential lane lines.
     """
+    self.readImage(img)
     self.create_color_mask()
     self.find_hough_lines_in_roi()
     self.get_lanes()
@@ -122,22 +111,34 @@ class Image:
     if print_mode > 0:
       self.print(print_mode)
 
-    return [self.lane_left, self.lane_right]
+    # return [self.lane_left, self.lane_right]
+    return cv2.cvtColor(self.lane_image,cv2.COLOR_RGB2BGR)
+
+  def readImage(self,img):
+    # read image and convert to RGB colors
+    if img.all() != None:
+      self.image_raw = cv2.cvtColor(img,cv2.COLOR_BGR2RGB)
+      self.shape = self.image_raw.shape
+    else:
+      # introduction to python exceptions => https://realpython.com/python-exceptions/
+      # how/when to use assert, raise, try/except => https://stackoverflow.com/questions/40182944/difference-between-raise-try-and-assert
+      raise ValueError(f"Image is missing.")
 
   def create_color_mask(self):
     ### convert to HSV color space => https://en.wikipedia.org/wiki/HSL_and_HSV#Basic_principle
     self.image_hsv = cv2.cvtColor(self.image_raw, cv2.COLOR_RGB2HSV)
     
     ### blur image to get rid of artifacts => isn't helpful for overall result
-    
-    kernel_size = 5
-    self.image_hsv = cv2.GaussianBlur(self.image_hsv, (kernel_size, kernel_size), 0)
+    # kernel_size = 5
+    # self.image_hsv = cv2.GaussianBlur(self.image_hsv, (kernel_size, kernel_size), 0)
     # self.mask_yellow_color = cv2.GaussianBlur(self.mask_yellow_color, (kernel_size, kernel_size), 0)
     # self.mask_white_color = cv2.GaussianBlur(self.mask_white_color, (kernel_size, kernel_size), 0)
 
     ### create color mask by filtering for yellow and white 
-    lower_yellow = np.array([17, 60, 0], dtype="uint8")
-    upper_yellow = np.array([25, 220, 255], dtype="uint8")
+    # lower_yellow = np.array([17, 60, 0], dtype="uint8")
+    # upper_yellow = np.array([25, 220, 255], dtype="uint8")
+    lower_yellow = np.array([75, 64, 0], dtype="uint8")
+    upper_yellow = np.array([105, 255, 255], dtype="uint8")
     self.mask_yellow_color = cv2.inRange(self.image_hsv, lower_yellow, upper_yellow)
     lower_white = np.array([0,0,130], dtype="uint8")
     upper_white = np.array([255,60,255], dtype="uint8")
@@ -155,9 +156,7 @@ class Image:
       raise ValueError(f"Mask is missing. Please run 'create_color_mask' first.")
 
     ### mask with region of interest
-    vertices = np.array([[[80,540], [920,540], [515,320], [445,320]]], dtype=np.int32)      # both lanes
-    # vertices = np.array([[[80,540], [500,540], [500,320], [445,320]]], dtype=np.int32)      # only left lane
-    # vertices = np.array([[[500,540], [920,540], [515,320], [500,320]]], dtype=np.int32)     # only right lane
+    vertices = np.int32(np.rint(self.shape[1]/960 * np.array([[[80,540], [920,540], [515,320], [445,320]]], dtype=np.int32)))  # 1280 x 720 px => 960 x 540 * 4/3
 
     self.roi_mask = np.zeros_like(self.color_mask)
     cv2.fillPoly(self.roi_mask, vertices, 255)
@@ -167,7 +166,7 @@ class Image:
     self.canny = cv2.Canny(self.color_mask_roi, threshold1=500, threshold2=1500)
 
     ### apply hough transformation and find long edges
-    self.hough_lines = cv2.HoughLinesP(self.canny, rho = 1, theta = np.pi/180, threshold = 30, lines=np.array([]), minLineLength = 20, maxLineGap = 200)
+    self.hough_lines = cv2.HoughLinesP(self.canny, rho = 1, theta = np.pi/180, threshold = 30, lines=np.array([]), minLineLength = 20, maxLineGap = 100)
 
     ### draw found lines into image
     self.hough_image = np.repeat(self.canny[:, :, np.newaxis], 3, axis=2)
@@ -175,9 +174,9 @@ class Image:
 
     self.lines = list()
     for i, element in enumerate(self.hough_lines):
-      self.lines.append(Line(element[0][0],element[0][1],element[0][2],element[0][3]))
-      self.lines[i].draw_line(self.hough_image, thickness = 1)
-      self.lines[i].draw_line(self.canny_hough_image, thickness = 1)
+      self.lines.append(Line(element[0][0],element[0][1],element[0][2],element[0][3], self.shape))
+      # self.lines[i].draw_line(self.hough_image, color=[0,255,0], thickness = 1)
+      # self.lines[i].draw_line(self.canny_hough_image, thickness = 1)
 
   def get_lanes(self):
     ### get average lane parameters (slope/intersection) for left and right
@@ -188,17 +187,31 @@ class Image:
         list_left.append([element.m, element.b])
       elif element.type == 'right':
         list_right.append([element.m, element.b])
-    self.lane_left  = Line(np.mean([item[0] for item in list_left]),  np.mean([item[1] for item in list_left]),  'left')
-    self.lane_right = Line(np.mean([item[0] for item in list_right]), np.mean([item[1] for item in list_right]), 'right')
-
-    ### blend lane into original image
+    
     self.lane_image = np.zeros_like(self.color_mask) 
     self.lane_image = np.repeat(self.lane_image[:, :, np.newaxis], 3, axis=2)
-    self.lane_left.draw_line(self.lane_image, thickness = 8)
-    self.lane_right.draw_line(self.lane_image, thickness = 8)   
+    self.color_mask_roi_image = np.repeat(self.color_mask_roi[:, :, np.newaxis], 3, axis=2)  
+
+    if len(list_left) > 0:
+      self.lane_left  = Line(np.mean([item[0] for item in list_left]),  np.mean([item[1] for item in list_left]), 'left', self.shape)
+      self.lane_left.draw_line(self.lane_image, thickness = 8)
+    if len(list_right) > 0:
+      self.lane_right = Line(np.mean([item[0] for item in list_right]), np.mean([item[1] for item in list_right]), 'right', self.shape)
+      self.lane_right.draw_line(self.lane_image, thickness = 8)   
+
+    ### blend lane into original image
+    self.color_mask_roi_image = cv2.addWeighted(src1 = self.color_mask_roi_image, alpha = 1.0, src2 = self.lane_image, beta = 1.0, gamma = 0.0)
     self.lane_image = cv2.addWeighted(src1 = self.image_raw, alpha = 0.8, src2 = self.lane_image, beta = 1.0, gamma = 0.0)
+    # self.lane_image = cv2.addWeighted(src1 = self.hough_image, alpha = 0.8, src2 = self.lane_image, beta = 1.0, gamma = 0.0)
 
   def print(self, mode):
+    # set font size of plot figure to 10 pt
+    plt.rcParams.update({'font.size': 10})
+
+    # plot figure in max window size
+    manager = plt.get_current_fig_manager()
+    manager.window.showMaximized()
+
     if mode == 1: # show raw color image with shape info
       print(f"The shape of the image is {self.shape}.")
       plt.title("RGB image")
@@ -244,7 +257,7 @@ class Image:
       plt.title("canny edge detection")
       plt.imshow(self.canny, cmap='gray')
 
-    elif mode == 4:
+    elif mode == 4: # show summary of all steps
       plt.subplot(2,2,1)
       plt.title("RGB image")
       plt.imshow(self.image_raw)
