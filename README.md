@@ -20,4 +20,4 @@ The lane detection is based mainly on color masking, canny edge detection and a 
 ---
 ## Setup Information 
 
-To simply see the results the [jupyter notebook(./P1.ipynb) is probably best. To run the lane detection locally please start by executing m<span>ain.p</span>y, an envrionment.yml is included to setup the utilized libraries. I followed the [original Udacity readme](./README_UdacityOriginal.md) to setup my envrionment.
+To simply see the results the [jupyter notebook](./P1.ipynb) is probably best. To run the lane detection locally please start by executing m<span>ain.p</span>y, an envrionment.yml is included to setup the utilized libraries. I followed the [original Udacity readme](./README_UdacityOriginal.md) to setup my envrionment.
