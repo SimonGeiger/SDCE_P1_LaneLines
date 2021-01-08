@@ -1,6 +1,6 @@
 # **Project 1 - Finding Lane Lines on the Road** 
 
----
+
 
 **Finding Lane Lines on the Road**
 
@@ -16,7 +16,7 @@ The goals / steps of this project are the following:
 
 ---
 
-### Reflection
+## Reflections
 
 ### 1. Describe your pipeline. As part of the description, explain how you modified the draw_lines() function.
 
