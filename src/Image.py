@@ -1,7 +1,11 @@
 import numpy as np
 import cv2
 import matplotlib.pyplot as plt
-from src.Line import Line as Line
+
+if __name__ == "__main__" or __name__ == 'Image':
+  from Line import Line
+else:
+  from src.Line import Line
 
 class Image:
   """

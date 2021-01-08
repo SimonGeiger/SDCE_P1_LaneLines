@@ -2,13 +2,9 @@ import os
 import cv2
 from moviepy.editor import VideoFileClip
 from IPython.display import HTML
-from src.Image import Image as Image
 
 TEST_IMAGE_INPUT = 1
 VIDEO_INPUT      = 2
-
-if __name__ == "__main__":
-    main()
 
 def main(mode = VIDEO_INPUT):
 
@@ -34,6 +30,7 @@ def main(mode = VIDEO_INPUT):
       test_images_output.append(f"test_images_output/{file_name}")
 
     tst_imgs = list()
+    print(dir())
 
     for i, path in enumerate(test_images_input):
       img = cv2.imread(path,cv2.IMREAD_COLOR)
@@ -62,3 +59,9 @@ def main(mode = VIDEO_INPUT):
       clip_with_lanes = clip.fl_image(fll.process_image)
       clip_with_lanes.write_videofile(test_videos_output[j], audio=False)
 
+if __name__ == "__main__":
+  from Image import Image 
+  # main(TEST_IMAGE_INPUT)
+  main(VIDEO_INPUT)
+else:
+  from src.Image import Image
